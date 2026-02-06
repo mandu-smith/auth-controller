@@ -104,3 +104,35 @@
     )
   )
 )
+
+;; Public functions
+(define-public (register-energy-producer (initial-energy-price uint))
+  (let ((producer-address tx-sender))
+    (asserts! (is-none (map-get? energy-producers producer-address))
+      ERR-PARTICIPANT-ALREADY-REGISTERED
+    )
+    (asserts!
+      (and (> initial-energy-price u0) (<= initial-energy-price (var-get maximum-energy-price)))
+      ERR-INVALID-ENERGY-PRICE
+    )
+    (ok (map-set energy-producers producer-address {
+      cumulative-energy-produced: u0,
+      producer-verification-status: false,
+      producer-registration-timestamp: stacks-block-height,
+      energy-unit-price: initial-energy-price,
+    }))
+  )
+)
+
+(define-public (register-energy-consumer)
+  (let ((consumer-address tx-sender))
+    (asserts! (is-none (map-get? energy-consumers consumer-address))
+      ERR-PARTICIPANT-ALREADY-REGISTERED
+    )
+    (ok (map-set energy-consumers consumer-address {
+      cumulative-energy-purchased: u0,
+      available-energy-credits: u0,
+      consumer-registration-timestamp: stacks-block-height,
+    }))
+  )
+)
