@@ -214,3 +214,21 @@
     (ok (var-set platform-commission-rate new-commission-rate))
   )
 )
+
+(define-public (update-minimum-tradeable-energy (new-minimum-amount uint))
+  (begin
+    (asserts! (is-eq tx-sender (var-get platform-administrator))
+      ERR-UNAUTHORIZED-ACCESS
+    )
+    (asserts! (> new-minimum-amount u0) ERR-INVALID-ENERGY-AMOUNT)
+    (ok (var-set minimum-tradeable-energy new-minimum-amount))
+  )
+)
+
+;; Contract initialization
+(begin
+  (var-set energy-trade-sequence u0)
+  (var-set minimum-tradeable-energy u100)
+  (var-set platform-commission-rate u2)
+  (var-set maximum-energy-price u1000000)
+)
