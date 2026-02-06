@@ -186,3 +186,31 @@
     }))
   )
 )
+
+;; Admin functions
+(define-public (verify-energy-producer (producer-address principal))
+  (let ((admin-address tx-sender))
+    (asserts! (is-eq admin-address (var-get platform-administrator))
+      ERR-UNAUTHORIZED-ACCESS
+    )
+    (asserts! (is-some (map-get? energy-producers producer-address))
+      ERR-ENERGY-PRODUCER-NOT-FOUND
+    )
+    (match (map-get? energy-producers producer-address)
+      producer-details (ok (map-set energy-producers producer-address
+        (merge producer-details { producer-verification-status: true })
+      ))
+      ERR-ENERGY-PRODUCER-NOT-FOUND
+    )
+  )
+)
+
+(define-public (update-platform-commission-rate (new-commission-rate uint))
+  (begin
+    (asserts! (is-eq tx-sender (var-get platform-administrator))
+      ERR-UNAUTHORIZED-ACCESS
+    )
+    (asserts! (<= new-commission-rate u100) ERR-INVALID-ENERGY-AMOUNT)
+    (ok (var-set platform-commission-rate new-commission-rate))
+  )
+)
