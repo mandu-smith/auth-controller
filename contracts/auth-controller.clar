@@ -136,3 +136,53 @@
     }))
   )
 )
+
+(define-public (record-green-energy-production (production-amount uint))
+  (let (
+      (producer-address tx-sender)
+      (producer-details (unwrap! (map-get? energy-producers producer-address)
+        ERR-ENERGY-PRODUCER-NOT-FOUND
+      ))
+    )
+    (asserts! (get producer-verification-status producer-details)
+      ERR-UNAUTHORIZED-ACCESS
+    )
+    (ok (map-set energy-producers producer-address
+      (merge producer-details { cumulative-energy-produced: (+ (get cumulative-energy-produced producer-details) production-amount) })
+    ))
+  )
+)
+
+(define-public (create-energy-trade
+    (producer-address principal)
+    (energy-amount uint)
+  )
+  (let (
+      (buyer-address tx-sender)
+      (producer-details (unwrap! (map-get? energy-producers producer-address)
+        ERR-ENERGY-PRODUCER-NOT-FOUND
+      ))
+      (consumer-details (unwrap! (map-get? energy-consumers buyer-address)
+        ERR-ENERGY-CONSUMER-NOT-FOUND
+      ))
+      (trade-identifier (+ (var-get energy-trade-sequence) u1))
+      (total-transaction-price (* energy-amount (get energy-unit-price producer-details)))
+    )
+    (asserts! (is-some (map-get? energy-producers producer-address))
+      ERR-INVALID-PRODUCER-ADDRESS
+    )
+    (asserts! (>= energy-amount (var-get minimum-tradeable-energy))
+      ERR-INVALID-ENERGY-AMOUNT
+    )
+    (try! (transfer-energy-credit-balance producer-address buyer-address energy-amount))
+    (var-set energy-trade-sequence trade-identifier)
+    (ok (map-set energy-trading-records trade-identifier {
+      energy-seller: producer-address,
+      energy-buyer: buyer-address,
+      energy-amount: energy-amount,
+      transaction-price: total-transaction-price,
+      transaction-timestamp: stacks-block-height,
+      trade-status: "completed",
+    }))
+  )
+)
