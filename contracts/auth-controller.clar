@@ -67,3 +67,40 @@
 (define-read-only (get-energy-trade-details (trade-identifier uint))
   (map-get? energy-trading-records trade-identifier)
 )
+
+(define-read-only (get-platform-commission-rate)
+  (var-get platform-commission-rate)
+)
+
+;; Private functions
+(define-private (calculate-platform-commission (energy-amount uint))
+  (/ (* energy-amount (var-get platform-commission-rate)) u100)
+)
+
+(define-private (transfer-energy-credit-balance
+    (seller-address principal)
+    (buyer-address principal)
+    (transfer-amount uint)
+  )
+  (let (
+      (seller-details (unwrap! (map-get? energy-producers seller-address)
+        ERR-ENERGY-PRODUCER-NOT-FOUND
+      ))
+      (buyer-details (unwrap! (map-get? energy-consumers buyer-address)
+        ERR-ENERGY-CONSUMER-NOT-FOUND
+      ))
+    )
+    (if (>= (get cumulative-energy-produced seller-details) transfer-amount)
+      (begin
+        (map-set energy-producers seller-address
+          (merge seller-details { cumulative-energy-produced: (- (get cumulative-energy-produced seller-details) transfer-amount) })
+        )
+        (map-set energy-consumers buyer-address
+          (merge buyer-details { available-energy-credits: (+ (get available-energy-credits buyer-details) transfer-amount) })
+        )
+        (ok true)
+      )
+      ERR-INSUFFICIENT-ENERGY-BALANCE
+    )
+  )
+)
